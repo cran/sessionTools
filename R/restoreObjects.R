@@ -18,14 +18,35 @@
 ###############################################################################
 
 restoreObjects <-
-    function(file="session.RData", envir=.GlobalEnv, clean = TRUE)
-{
+  function(file="session.RData", envir=.GlobalEnv, clean = TRUE)
+{  
   if(clean){
     names <- ls(all.names=TRUE, envir = envir)
     if(length(names) > 0)
       rm(list = names, envir = envir)
   }
   
+  srcEnv <- new.env()
   ## load the r objects
-  load(file, envir = envir)
+  load(file, envir = srcEnv)
+  
+  for(c in getClasses(srcEnv))
+    removeClass(c, where = srcEnv)
+  
+  ans <- getGenerics(where = srcEnv)
+  if(length(ans@.Data) > 0L){
+    for(i in 1:length(ans@.Data)){
+      setPackageName(ans@package[i], srcEnv)
+      g <- ans@.Data[i]
+      for(ss in names(findMethods(g, where=srcEnv)))
+        removeMethod(g, ss, where = srcEnv)
+      rm(".packageName", envir=srcEnv)
+    }
+  }
+  
+  ans <- getGenerics(where = srcEnv)
+  for(g in ans@.Data)
+    removeGeneric(g, where = srcEnv)
+  
+  ans <- lapply(objects(srcEnv, all.names=TRUE), function(o) assign(o, get(o, envir=srcEnv) , envir=envir))
 }

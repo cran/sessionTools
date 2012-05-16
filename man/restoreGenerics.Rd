@@ -1,0 +1,51 @@
+\name{restoreGenerics}
+\alias{restoreGenerics}
+\title{
+Restore Session Class Definitions
+}
+\description{
+Restores the class definitions from an R binary file to the specified environment.
+}
+\usage{
+restoreGenerics(file = "session.RData", envir = .GlobalEnv, clean = TRUE, srcEnv)
+}
+\arguments{
+\item{file}{
+path to an R binary file
+}
+\item{envir}{
+the environment into which the class definitions should be restored.
+}
+\item{clean}{
+boolean indicating whether the environment should be purged of existing class definitions prior to restoring
+}
+\item{srcEnv}{
+environment from which to restore generics. if this argument is provided the "file" arguments is ignored.
+}
+}
+
+\value{
+This method is executed for it's side-effects.
+}
+\author{
+Matthew D. Furia \email{matt.furia@sagebase.org}
+
+\url{https://github.com/MattNapsAlot}
+}
+
+\examples{
+## make some generics
+setGeneric("foo", def = function(bar) standardGeneric("foo"))
+
+## save the session
+sessionFile <- tempfile(fileext=".rbin")
+saveSession(list = ls(), file = sessionFile)
+
+## create an environment where they can be restored
+env <- new.env()
+
+## restore the generic
+restoreGenerics(file = sessionFile, envir = env)
+getGenerics(env)
+
+}

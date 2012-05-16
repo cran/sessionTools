@@ -153,12 +153,96 @@ unitTestRestoreObjectsStartingWithDot <-
   env2 <- new.env()
   
   restoreObjects(file="session.RData", envir = env2)
-  checkTrue(all(objects(env1) %in% objects(env2)))
-  checkEquals(length(objects(env1)), length(objects(env2)))
+  checkTrue(all(objects(env1, all.names=T) %in% objects(env2, all.names=T)))
+  checkEquals(length(objects(env1, all.names=T)), length(objects(env2, all.names=T)))
   
-  for(o in objects(env1)){
+  for(o in objects(env1, all.names=T)){
+    checkEquals(get(o, envir = env1), get(o, envir = env2))
+  }
+}
+
+unitTestRestoreObjectsOmitClasses <-
+  function()
+{
+  env1 <- new.env()
+  
+  ## define a package
+  setPackageName("pkgName", env1)
+  setClass("foo", where = env1)
+  rm(".packageName", envir=env1)
+  
+  assign(".foo", "bar", envir = env1)
+  assign(".blargh", "goo", envir = env1)
+  save(list=ls(env1, all.names = TRUE), envir = env1, file = "session.RData")
+  
+  removeClass("foo", where=env1)
+  
+  env2 <- new.env()
+  
+  restoreObjects(file="session.RData", envir = env2)
+  checkTrue(all(objects(env1, all.names=T) %in% objects(env2, all.names=T)))
+  checkEquals(length(objects(env1, all.names=T)), length(objects(env2, all.names=T)))
+  
+  for(o in objects(env1, all.names=T)){
+    checkEquals(get(o, envir = env1), get(o, envir = env2))
+  }
+}
+
+unitTestRestoreObjectsOmitGenerics <-
+  function()
+{
+  env1 <- new.env()
+  
+  ## define a package
+  setPackageName("pkgName", env1)
+  setGeneric("foo", def = function(boo) standardGeneric("foo"), where = env1)
+  rm(".packageName", envir=env1)
+  
+  assign(".foo", "bar", envir = env1)
+  assign(".blargh", "goo", envir = env1)
+  save(list=ls(env1, all.names = TRUE), envir = env1, file = "session.RData")
+  
+  removeGeneric("foo", where=env1)
+  
+  env2 <- new.env()
+  
+  restoreObjects(file="session.RData", envir = env2)
+  checkTrue(all(objects(env1, all.names=T) %in% objects(env2, all.names=T)))
+  checkEquals(length(objects(env1, all.names=T)), length(objects(env2, all.names=T)))
+  checkEquals(length(getGenerics(env2)), 0L)
+  
+  for(o in objects(env1, all.names=T)){
     checkEquals(get(o, envir = env1), get(o, envir = env2))
   }
 }
 
 
+unitTestRestoreObjectsOmitS4Methods <-
+  function()
+{
+  env1 <- new.env()
+  
+  ## define a package
+  setPackageName("pkgName", env1)
+  setGeneric("foobb", def = function(boo) standardGeneric("foo"), where = env1)
+  setMethod("foobb", signature="character", definition = function(boo) print(boo), where = env1)
+  
+  assign("foo", "bar", envir = env1)
+  assign("blargh", "goo", envir = env1)
+  save(list=ls(env1, all.names = TRUE), envir = env1, file = "session.RData")
+  
+  removeMethod("foobb", signature = "character", where=env1)
+  removeGeneric("foobb", where = env1)
+  rm(".packageName", envir=env1)
+  
+  env2 <- new.env()
+  
+  restoreObjects(file="session.RData", envir = env2)
+  checkTrue(all(objects(env1, all.names=T) %in% objects(env2, all.names=T)))
+  checkEquals(length(objects(env1, all.names=T)), length(objects(env2, all.names=T)))
+  checkEquals(length(getGenerics(env2)), 0L)
+  
+  for(o in objects(env1, all.names=T)){
+    checkEquals(get(o, envir = env1), get(o, envir = env2))
+  }
+}
